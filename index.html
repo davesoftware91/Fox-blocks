@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Fox Blocks</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #87CEEB; font-family: Arial; }
+  canvas { display: block; touch-action: none; }
+  #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; font-size: 20px; text-shadow: 2px 2px 4px black; }
+  #gold { position: absolute; top: 10px; left: 10px; font-size: 18px; color: gold; }
+  #timer { position: absolute; top: 10px; right: 10px; font-size: 18px; color: #00FF00; }
+  #joystick { position: absolute; bottom: 80px; left: 30px; width: 100px; height: 100px; background: rgba(255,255,255,0.3); border-radius: 50%; }
+  #jump { position: absolute; bottom: 80px; right: 30px; width: 80px; height: 80px; background: rgba(255,255,255,0.5); border-radius: 50%; color: black; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+  #collect { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); padding: 10px 20px; background: orange; border: none; border-radius: 10px; font-size: 16px; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" }
+</script>
+</head>
+<body>
+<div id="ui">FOX BLOCKS</div>
+<div id="gold">Gold: 0</div>
+<div id="timer">Collect: 60:00</div>
+<div id="joystick"></div>
+<div id="jump">JUMP</div>
+<button id="collect">Collect Gold</button>
+
+<script type="module">
+import * as THREE from 'three';
+
+// BASIC 3D SETUP
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// LIGHT
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5,10,5);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+
+// GROUND
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(100,100), new THREE.MeshLambertMaterial({color: 0x228B22}));
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+// ROAD
+const road = new THREE.Mesh(new THREE.PlaneGeometry(100,5), new THREE.MeshLambertMaterial({color: 0x555}));
+road.rotation.x = -Math.PI/2;
+road.position.y = 0.01;
+scene.add(road);
+
+// PLAYER
+const player = new THREE.Mesh(new THREE.BoxGeometry(1,2,1), new THREE.MeshLambertMaterial({color: 0xFF4500}));
+player.position.set(0,1,0);
+scene.add(player);
+camera.position.set(0,5,10);
+
+// HOUSES
+let gold = 0;
+let lastCollect = Date.now();
+const houses = [];
+for(let i=0; i<10; i++){
+  const house = new THREE.Group();
+  const box = new THREE.Mesh(new THREE.BoxGeometry(3,3,3), new THREE.MeshLambertMaterial({color: 0xDEB887}));
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(2.5,2,4), new THREE.MeshLambertMaterial({color: 0x8B4513}));
+  roof.position.y = 2.5;
+  house.add(box, roof);
+  house.position.set((i%5)*8 - 16, 1.5, Math.floor(i/5)*8 - 4);
+  
+  // For Sale sign
+  if(i < 5){
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(2,1), new THREE.MeshLambertMaterial({color: 0xFF0000}));
+    sign.position.set(0, 3, 2);
+    house.add(sign);
+    house.forSale = true;
+    house.price = 500;
+  }
+  
+  scene.add(house);
+  houses.push(house);
+}
+
+// CONTROLS
+let moveX = 0, moveZ = 0;
+document.getElementById('joystick').addEventListener('touchmove', e => {
+  const touch = e.touches[0];
+  const rect = e.target.getBoundingClientRect();
+  moveX = (touch.clientX - rect.left - 50)/50;
+  moveZ = (touch.clientY - rect.top - 50)/50;
+});
+document.getElementById('jump').addEventListener('touchstart', () => player.position.y += 1);
+
+// BUY HOUSE ON CLICK
+renderer.domElement.addEventListener('touchstart', e => {
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2(
+    (e.touches[0].clientX/window.innerWidth)*2-1,
+    -(e.touches[0].clientY/window.innerHeight)*2+1
+  );
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(scene.children, true);
+  if(intersects.length > 0){
+    const house = intersects[0].object.parent;
+    if(house.forSale && gold >= 500){
+      gold -= 500;
+      house.forSale = false;
+      house.children[2].material.color.set(0x00FF00); // turn sign green
+      alert('House Bought!');
+    }
+  }
+});
+
+// COLLECT GOLD
+document.getElementById('collect').onclick = () => {
+  if(Date.now() - lastCollect > 3600000){
+    gold += houses.filter(h=>!h.forSale).length * 20;
+    lastCollect = Date.now();
+  }
+}
+
+// GAME LOOP
+function animate(){
+  requestAnimationFrame(animate);
+  player.position.x += moveX * 0.1;
+  player.position.z += moveZ * 0.1;
+  camera.lookAt(player.position);
+  
+  // Timer
+  const diff = 3600000 - (Date.now() - lastCollect);
+  const mins = Math.floor(diff/60000);
+  const secs = Math.floor((diff%60000)/1000);
+  document.getElementById('timer').innerText = `Collect: ${mins}:${secs}`;
+  document.getElementById('gold').innerText = `Gold: ${gold}`;
+  
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
