@@ -1,0 +1,6 @@
+{
+  "name": "Fox Blocks",
+  "description": "A low-poly 3D mobile Minecraft-style block game featuring real-time multiplayer, gold collecting, custom outfits/pets, and a Forest biome with a sky-dwelling Bird life cycle simulator (mating, nesting, egg hatching).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

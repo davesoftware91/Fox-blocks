@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Player": {
+      "title": "Player",
+      "description": "Represents an active player's profile and real-time state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique player ID" },
+        "username": { "type": "string", "description": "Display name of the player" },
+        "gold": { "type": "integer", "description": "Current gold amount" },
+        "x": { "type": "number", "description": "Current X coordinate in 3D space" },
+        "y": { "type": "number", "description": "Current Y coordinate in 3D space" },
+        "z": { "type": "number", "description": "Current Z coordinate in 3D space" },
+        "ry": { "type": "number", "description": "Rotation Y of the character" },
+        "lastActive": { "type": "integer", "description": "Unix timestamp in ms of last activity" }
+      },
+      "required": ["id", "username", "gold", "x", "y", "z", "ry", "lastActive"]
+    },
+    "House": {
+      "title": "House",
+      "description": "Represents ownership state of a house",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "House identifier (e.g. house_1)" },
+        "ownerId": { "type": "string", "description": "ID of the owning player or empty string" },
+        "ownerUsername": { "type": "string", "description": "Username of the owning player or empty string" }
+      },
+      "required": ["id", "ownerId", "ownerUsername"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Global chat message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Message ID" },
+        "senderId": { "type": "string", "description": "Sender player ID" },
+        "username": { "type": "string", "description": "Sender username" },
+        "text": { "type": "string", "description": "Message content" },
+        "timestamp": { "type": "integer", "description": "Unix timestamp in ms" }
+      },
+      "required": ["id", "senderId", "username", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/players/{playerId}": {
+      "schema": "Player",
+      "description": "Active players and their real-time 3D state"
+    },
+    "/houses/{houseId}": {
+      "schema": "House",
+      "description": "Durable record of house ownership"
+    },
+    "/chats/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Global chat collection"
+    }
+  }
+}

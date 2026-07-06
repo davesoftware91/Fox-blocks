@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper to check valid document IDs
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() < 100;
+    }
+
+    function isValidPlayer(data) {
+      return data.id is string
+        && data.username is string && data.username.size() <= 18
+        && data.gold is int
+        && data.lastActive is int
+        && (!('x' in data) || data.x is number)
+        && (!('y' in data) || data.y is number)
+        && (!('z' in data) || data.z is number)
+        && (!('ry' in data) || data.ry is number)
+        && (!('equippedOutfit' in data) || data.equippedOutfit == null || data.equippedOutfit is string)
+        && (!('equippedPet' in data) || data.equippedPet == null || data.equippedPet is string)
+        && (!('equippedMount' in data) || data.equippedMount == null || data.equippedMount is string);
+    }
+
+    function isValidHouse(data) {
+      return data.ownerId is string
+        && data.ownerUsername is string;
+    }
+
+    function isValidChat(data) {
+      return data.id is string
+        && data.senderId is string
+        && data.username is string && data.username.size() <= 18
+        && data.text is string && data.text.size() <= 500
+        && data.timestamp is int;
+    }
+
+    match /players/{playerId} {
+      allow read: if true;
+      allow write: if isValidId(playerId) && isValidPlayer(request.resource.data);
+    }
+
+    match /houses/{houseId} {
+      allow read: if true;
+      allow write: if isValidId(houseId) && isValidHouse(request.resource.data);
+    }
+
+    match /chats/{chatId} {
+      allow read: if true;
+      allow write: if isValidId(chatId) && isValidChat(request.resource.data);
+    }
+  }
+}
